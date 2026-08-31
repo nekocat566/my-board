@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>回覧板</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper: #E7E1D0;
+    --paper-note: #F5EFE0;
+    --paper-note-2: #F1E9D6;
+    --wood: #6B4A34;
+    --wood-dark: #4E3627;
+    --ink: #2B2420;
+    --ink-soft: #6B6053;
+    --line: #CBBFA3;
+    --accent: #B23A2E;
+    --accent-soft: rgba(178, 58, 46, 0.10);
+    --shadow: rgba(43, 36, 32, 0.18);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    min-height: 100%;
+  }
+
+  body {
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(107,74,52,0.07) 1px, transparent 0);
+    background-size: 18px 18px;
+  }
+
+  #app {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 20px 80px;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    border-bottom: 6px solid var(--wood);
+    padding: 28px 4px 20px;
+    margin-bottom: 32px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .title-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .hanko {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    border: 2.5px solid var(--accent);
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Shippori Mincho', serif;
+    font-weight: 700;
+    font-size: 20px;
+    flex-shrink: 0;
+    transform: rotate(-6deg);
+  }
+
+  h1 {
+    font-family: 'Shippori Mincho', serif;
+    font-weight: 700;
+    font-size: 34px;
+    margin: 0;
+    letter-spacing: 0.04em;
+  }
+
+  .subtitle {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: var(--ink-soft);
+    letter-spacing: 0.03em;
+  }
+
+  .account-box {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+
+  .account-box .who { font-size: 13px; color: var(--ink); }
+  .account-box .who b { color: var(--accent); }
+
+  /* ---------- Buttons ---------- */
+  button { font-family: inherit; cursor: pointer; }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #F6EEE4;
+    border: none;
+    padding: 11px 20px;
+    border-radius: 3px;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    box-shadow: 0 3px 0 var(--wood-dark);
+    transition: transform 0.12s ease;
+  }
+  .btn-primary:hover { transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(1px); box-shadow: 0 2px 0 var(--wood-dark); }
+  .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+  .btn-text {
+    background: none;
+    border: none;
+    color: var(--ink-soft);
+    font-size: 13px;
+    padding: 4px 0;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .btn-text:hover { color: var(--ink); }
+
+  /* ---------- New post bar / status ---------- */
+  .new-post-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 26px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .status-line {
+    font-size: 12.5px;
+    color: var(--ink-soft);
+  }
+  .status-line.is-error { color: var(--accent); }
+
+  /* ---------- Board grid ---------- */
+  #board-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 26px 22px;
+  }
+
+  .note {
+    position: relative;
+    background: var(--paper-note);
+    padding: 22px 18px 16px;
+    border-radius: 2px;
+    box-shadow: 0 6px 14px var(--shadow);
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .note:nth-child(3n) { transform: rotate(-1.4deg); }
+  .note:nth-child(3n+1) { transform: rotate(1deg); }
+  .note:nth-child(3n+2) { transform: rotate(-0.5deg); }
+
+  .note-clickable:hover {
+    transform: translateY(-3px) rotate(0deg);
+    box-shadow: 0 10px 20px var(--shadow);
+  }
+
+  .pin {
+    position: absolute;
+    top: -7px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 2px 3px rgba(0,0,0,0.3);
+  }
+
+  .note-title {
+    font-family: 'Shippori Mincho', serif;
+    font-weight: 700;
+    font-size: 17px;
+    margin: 0 0 8px;
+    line-height: 1.4;
+  }
+
+  .note-body {
+    font-size: 13.5px;
+    color: var(--ink);
+    line-height: 1.7;
+    flex: 1;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    white-space: pre-wrap;
+  }
+
+  .note-footer {
+    margin-top: 14px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--line);
+    display: flex;
+    justify-content: space-between;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+  }
+
+  .reply-count { color: var(--accent); font-weight: 500; }
+
+  .peel-btn {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    background: none;
+    border: none;
+    font-size: 15px;
+    color: var(--ink-soft);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    padding: 2px 6px;
+    line-height: 1;
+  }
+  .note:hover .peel-btn { opacity: 0.55; }
+  .peel-btn:hover { opacity: 1 !important; color: var(--accent); }
+
+  /* ---------- Empty / loading state ---------- */
+  .empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--ink-soft);
+    font-size: 14px;
+  }
+  .empty-state p { margin: 0 0 16px; }
+
+  /* ---------- Thread view ---------- */
+  #thread-view { display: none; }
+
+  .back-link { margin-bottom: 20px; }
+
+  .thread-main {
+    position: relative;
+    background: var(--paper-note);
+    padding: 30px 30px 22px;
+    border-radius: 2px;
+    box-shadow: 0 8px 18px var(--shadow);
+    margin-bottom: 34px;
+  }
+
+  .thread-main .note-title { font-size: 24px; }
+  .thread-main .note-body { -webkit-line-clamp: unset; font-size: 15px; }
+
+  .replies-heading {
+    font-family: 'Shippori Mincho', serif;
+    font-size: 15px;
+    color: var(--ink-soft);
+    margin: 0 0 16px;
+    border-left: 3px solid var(--accent);
+    padding-left: 10px;
+  }
+
+  .reply-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: 30px;
+  }
+
+  .reply-note {
+    position: relative;
+    background: var(--paper-note-2);
+    padding: 14px 18px 12px 26px;
+    border-radius: 2px;
+    box-shadow: 0 3px 8px var(--shadow);
+    margin-left: 24px;
+    font-size: 13.5px;
+  }
+
+  .reply-note::before {
+    content: "";
+    position: absolute;
+    left: -14px;
+    top: 50%;
+    width: 14px;
+    height: 1px;
+    background: var(--line);
+  }
+
+  .reply-body { line-height: 1.7; white-space: pre-wrap; margin-bottom: 8px; }
+
+  .reply-footer {
+    font-size: 11px;
+    color: var(--ink-soft);
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* ---------- Forms ---------- */
+  .form-card {
+    background: var(--paper-note);
+    padding: 22px;
+    border-radius: 2px;
+    box-shadow: 0 6px 14px var(--shadow);
+  }
+
+  .form-card h3 {
+    font-family: 'Shippori Mincho', serif;
+    margin: 0 0 8px;
+    font-size: 16px;
+  }
+
+  .form-card .form-note {
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin: 0 0 16px;
+    line-height: 1.6;
+  }
+
+  .form-row { margin-bottom: 14px; display: flex; flex-direction: column; gap: 5px; }
+  .form-row label { font-size: 12px; color: var(--ink-soft); }
+
+  .form-row input, .form-row textarea {
+    font-family: inherit;
+    font-size: 14px;
+    padding: 9px 11px;
+    border: 1px solid var(--line);
+    background: #FBF7EE;
+    color: var(--ink);
+    border-radius: 3px;
+    resize: vertical;
+  }
+  .form-row input:focus, .form-row textarea:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+
+  .form-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+  /* ---------- Overlay ---------- */
+  #overlay, #settings-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(43,36,32,0.45);
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 10;
+  }
+
+  #overlay .form-card, #settings-overlay .form-card { width: 100%; max-width: 460px; }
+
+  @media (max-width: 560px) {
+    header { flex-direction: column; align-items: flex-start; }
+    .account-box { align-items: flex-start; }
+    h1 { font-size: 27px; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="title-row">
+      <div class="hanko">回</div>
+      <div>
+        <h1>回覧板</h1>
+        <p class="subtitle">身内だけの、静かな掲示板</p>
+      </div>
+    </div>
+    <div class="account-box">
+      <div class="who" id="who-line">未接続</div>
+      <button class="btn-text" id="open-settings">接続設定</button>
+    </div>
+  </header>
+
+  <!-- Board view -->
+  <main id="board-view">
+    <div class="new-post-bar">
+      <span class="status-line" id="status-line"></span>
+      <button class="btn-primary" id="open-new-post" disabled>＋ 新しい紙を貼る</button>
+    </div>
+    <div id="board-grid"></div>
+  </main>
+
+  <!-- Thread view -->
+  <main id="thread-view">
+    <div class="back-link">
+      <button class="btn-text" id="back-to-board">← 掲示板へ戻る</button>
+    </div>
+    <div class="thread-main" id="thread-main"></div>
+    <p class="replies-heading" id="replies-heading">返信</p>
+    <div class="reply-list" id="reply-list"></div>
+    <div class="form-card">
+      <h3>返信を貼る</h3>
+      <div class="form-row">
+        <label for="reply-body">内容</label>
+        <textarea id="reply-body" rows="3" placeholder="ひとこと書いてください"></textarea>
+      </div>
+      <div class="form-actions">
+        <button class="btn-primary" id="submit-reply">貼り付ける</button>
+      </div>
+    </div>
+  </main>
+
+</div>
+
+<!-- New post overlay -->
+<div id="overlay">
+  <div class="form-card">
+    <h3>新しい紙を貼る</h3>
+    <div class="form-row">
+      <label for="post-title">タイトル</label>
+      <input id="post-title" type="text" maxlength="60" placeholder="例: 今週末の集まりについて">
+    </div>
+    <div class="form-row">
+      <label for="post-body">内容</label>
+      <textarea id="post-body" rows="5" placeholder="書きたいことを書いてください"></textarea>
+    </div>
+    <div class="form-actions">
+      <button class="btn-text" id="cancel-new-post">やめる</button>
+      <button class="btn-primary" id="submit-new-post">貼る</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings overlay -->
+<div id="settings-overlay">
+  <div class="form-card">
+    <h3>GitHubへの接続設定</h3>
+    <p class="form-note">
+      投稿はこのリポジトリのIssueとして保存されます。トークンはこの端末のブラウザにだけ保存され、コードやリポジトリには含まれません。
+    </p>
+    <div class="form-row">
+      <label for="gh-owner">リポジトリの所有者(ユーザー名 or Organization名)</label>
+      <input id="gh-owner" type="text" placeholder="例: yamada-taro">
+    </div>
+    <div class="form-row">
+      <label for="gh-repo">リポジトリ名</label>
+      <input id="gh-repo" type="text" placeholder="例: kaijiban">
+    </div>
+    <div class="form-row">
+      <label for="gh-token">個人アクセストークン(Issuesの読み書き権限が必要)</label>
+      <input id="gh-token" type="password" placeholder="ghp_... または github_pat_...">
+    </div>
+    <div class="form-actions">
+      <button class="btn-text" id="cancel-settings">やめる</button>
+      <button class="btn-primary" id="submit-settings">接続する</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const CONFIG_KEY = 'kaijiban:gh-config'; // { owner, repo, token }
+
+  const boardView = document.getElementById('board-view');
+  const threadView = document.getElementById('thread-view');
+  const boardGrid = document.getElementById('board-grid');
+  const statusLine = document.getElementById('status-line');
+  const whoLine = document.getElementById('who-line');
+
+  const openNewPostBtn = document.getElementById('open-new-post');
+  const overlay = document.getElementById('overlay');
+  const cancelNewPostBtn = document.getElementById('cancel-new-post');
+  const submitNewPostBtn = document.getElementById('submit-new-post');
+  const postTitleInput = document.getElementById('post-title');
+  const postBodyInput = document.getElementById('post-body');
+
+  const settingsOverlay = document.getElementById('settings-overlay');
+  const openSettingsBtn = document.getElementById('open-settings');
+  const cancelSettingsBtn = document.getElementById('cancel-settings');
+  const submitSettingsBtn = document.getElementById('submit-settings');
+  const ghOwnerInput = document.getElementById('gh-owner');
+  const ghRepoInput = document.getElementById('gh-repo');
+  const ghTokenInput = document.getElementById('gh-token');
+
+  const backToBoardBtn = document.getElementById('back-to-board');
+  const threadMain = document.getElementById('thread-main');
+  const replyList = document.getElementById('reply-list');
+  const repliesHeading = document.getElementById('replies-heading');
+  const replyBodyInput = document.getElementById('reply-body');
+  const submitReplyBtn = document.getElementById('submit-reply');
+
+  let config = null;
+  let activeIssueNumber = null;
+  let cachedIssues = [];
+
+  // ---------- config ----------
+  function loadConfig() {
+    try {
+      const raw = localStorage.getItem(CONFIG_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
+
+  function saveConfig(c) {
+    localStorage.setItem(CONFIG_KEY, JSON.stringify(c));
+  }
+
+  function isConfigured() {
+    return config && config.owner && config.repo && config.token;
+  }
+
+  // ---------- GitHub API ----------
+  async function gh(path, options = {}) {
+    const res = await fetch(`https://api.github.com${path}`, {
+      ...options,
+      headers: {
+        'Accept': 'application/vnd.github+json',
+        'Authorization': `Bearer ${config.token}`,
+        'X-GitHub-Api-Version': '2022-11-28',
+        ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+        ...(options.headers || {})
+      }
+    });
+    if (!res.ok) {
+      let message = `${res.status} ${res.statusText}`;
+      try {
+        const data = await res.json();
+        if (data && data.message) message = data.message;
+      } catch (e) {}
+      throw new Error(message);
+    }
+    if (res.status === 204) return null;
+    return res.json();
+  }
+
+  function repoPath(suffix) {
+    return `/repos/${encodeURIComponent(config.owner)}/${encodeURIComponent(config.repo)}${suffix}`;
+  }
+
+  function setStatus(text, isError) {
+    statusLine.textContent = text || '';
+    statusLine.classList.toggle('is-error', !!isError);
+  }
+
+  // ---------- time formatting ----------
+  function relativeTime(isoOrMs) {
+    const ts = typeof isoOrMs === 'number' ? isoOrMs : new Date(isoOrMs).getTime();
+    const diff = Date.now() - ts;
+    const min = Math.floor(diff / 60000);
+    if (min < 1) return 'たった今';
+    if (min < 60) return `${min}分前`;
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return `${hr}時間前`;
+    const day = Math.floor(hr / 24);
+    if (day < 7) return `${day}日前`;
+    const d = new Date(ts);
+    return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+  }
+
+  // ---------- settings UI ----------
+  function openSettings() {
+    ghOwnerInput.value = config ? config.owner : '';
+    ghRepoInput.value = config ? config.repo : '';
+    ghTokenInput.value = config ? config.token : '';
+    settingsOverlay.style.display = 'flex';
+  }
+  function closeSettings() { settingsOverlay.style.display = 'none'; }
+
+  openSettingsBtn.addEventListener('click', openSettings);
+  cancelSettingsBtn.addEventListener('click', () => {
+    if (!isConfigured()) return; // must configure at least once
+    closeSettings();
+  });
+  settingsOverlay.addEventListener('click', (e) => {
+    if (e.target === settingsOverlay && isConfigured()) closeSettings();
+  });
+
+  submitSettingsBtn.addEventListener('click', async () => {
+    const owner = ghOwnerInput.value.trim();
+    const repo = ghRepoInput.value.trim();
+    const token = ghTokenInput.value.trim();
+    if (!owner || !repo || !token) {
+      alert('すべての項目を入力してください。');
+      return;
+    }
+    config = { owner, repo, token };
+    submitSettingsBtn.disabled = true;
+    submitSettingsBtn.textContent = '確認中…';
+    try {
+      const user = await gh('/user');
+      saveConfig(config);
+      whoLine.innerHTML = `ログイン中: <b>${escapeHtml(user.login)}</b>`;
+      closeSettings();
+      openNewPostBtn.disabled = false;
+      await refreshBoard();
+    } catch (e) {
+      alert('接続できませんでした: ' + e.message + '\n所有者名・リポジトリ名・トークンを確認してください。');
+    } finally {
+      submitSettingsBtn.disabled = false;
+      submitSettingsBtn.textContent = '接続する';
+    }
+  });
+
+  // ---------- board ----------
+  async function refreshBoard() {
+    if (!isConfigured()) { openSettings(); return; }
+    setStatus('読み込み中…');
+    try {
+      const issues = await gh(repoPath('/issues?state=open&sort=created&direction=desc&per_page=50'));
+      cachedIssues = issues.filter(i => !i.pull_request); // exclude PRs, GitHub lists them alongside issues
+      renderBoard();
+      setStatus('');
+    } catch (e) {
+      setStatus('読み込みに失敗しました: ' + e.message, true);
+      boardGrid.innerHTML = `<div class="empty-state"><p>掲示板を読み込めませんでした。接続設定を確認してください。</p></div>`;
+    }
+  }
+
+  function renderBoard() {
+    boardGrid.innerHTML = '';
+    if (cachedIssues.length === 0) {
+      boardGrid.innerHTML = `
+        <div class="empty-state">
+          <p>まだ紙が貼られていません。最初の一枚を貼ってみましょう。</p>
+        </div>`;
+      return;
+    }
+    cachedIssues.forEach(issue => {
+      const card = document.createElement('div');
+      card.className = 'note note-clickable';
+      card.innerHTML = `
+        <div class="pin"></div>
+        <button class="peel-btn" title="しまう(閉じる)" data-number="${issue.number}">×</button>
+        <h3 class="note-title">${escapeHtml(issue.title)}</h3>
+        <div class="note-body">${escapeHtml(issue.body || '')}</div>
+        <div class="note-footer">
+          <span>${escapeHtml(issue.user.login)} ・ ${relativeTime(issue.created_at)}</span>
+          <span class="reply-count">${issue.comments > 0 ? '返信 ' + issue.comments : ''}</span>
+        </div>
+      `;
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('.peel-btn')) return;
+        openThread(issue.number);
+      });
+      boardGrid.appendChild(card);
+    });
+
+    boardGrid.querySelectorAll('.peel-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const number = btn.dataset.number;
+        if (!confirm('この紙をしまいます(掲示板から消えます)。よろしいですか？')) return;
+        try {
+          await gh(repoPath(`/issues/${number}`), {
+            method: 'PATCH',
+            body: JSON.stringify({ state: 'closed' })
+          });
+          await refreshBoard();
+        } catch (err) {
+          alert('しまえませんでした: ' + err.message);
+        }
+      });
+    });
+  }
+
+  // ---------- thread ----------
+  async function openThread(number) {
+    activeIssueNumber = number;
+    boardView.style.display = 'none';
+    threadView.style.display = 'block';
+    threadMain.innerHTML = '<p class="note-body">読み込み中…</p>';
+    replyList.innerHTML = '';
+    repliesHeading.textContent = '';
+    await renderThread();
+  }
+
+  function closeThread() {
+    activeIssueNumber = null;
+    threadView.style.display = 'none';
+    boardView.style.display = 'block';
+    refreshBoard();
+  }
+
+  async function renderThread() {
+    try {
+      const issue = await gh(repoPath(`/issues/${activeIssueNumber}`));
+      const comments = await gh(repoPath(`/issues/${activeIssueNumber}/comments?per_page=100`));
+
+      threadMain.innerHTML = `
+        <div class="pin"></div>
+        <h3 class="note-title">${escapeHtml(issue.title)}</h3>
+        <div class="note-body">${escapeHtml(issue.body || '')}</div>
+        <div class="note-footer">
+          <span>${escapeHtml(issue.user.login)} ・ ${relativeTime(issue.created_at)}</span>
+          <span></span>
+        </div>
+      `;
+
+      repliesHeading.textContent = comments.length > 0 ? `返信 (${comments.length})` : '返信はまだありません';
+
+      replyList.innerHTML = '';
+      comments.forEach(c => {
+        const el = document.createElement('div');
+        el.className = 'reply-note';
+        el.innerHTML = `
+          <button class="peel-btn" title="剥がす" data-id="${c.id}">×</button>
+          <div class="reply-body">${escapeHtml(c.body)}</div>
+          <div class="reply-footer">
+            <span>${escapeHtml(c.user.login)}</span>
+            <span>${relativeTime(c.created_at)}</span>
+          </div>
+        `;
+        replyList.appendChild(el);
+      });
+
+      replyList.querySelectorAll('.peel-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('この返信を剥がします。よろしいですか？')) return;
+          try {
+            await gh(repoPath(`/issues/comments/${btn.dataset.id}`), { method: 'DELETE' });
+            await renderThread();
+          } catch (err) {
+            alert('剥がせませんでした: ' + err.message);
+          }
+        });
+      });
+
+      replyBodyInput.value = '';
+    } catch (e) {
+      threadMain.innerHTML = `<p class="note-body">読み込みに失敗しました: ${escapeHtml(e.message)}</p>`;
+    }
+  }
+
+  // ---------- new post ----------
+  function openOverlay() {
+    postTitleInput.value = '';
+    postBodyInput.value = '';
+    overlay.style.display = 'flex';
+    postTitleInput.focus();
+  }
+  function closeOverlay() { overlay.style.display = 'none'; }
+
+  openNewPostBtn.addEventListener('click', openOverlay);
+  cancelNewPostBtn.addEventListener('click', closeOverlay);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeOverlay(); });
+
+  submitNewPostBtn.addEventListener('click', async () => {
+    const title = postTitleInput.value.trim();
+    const body = postBodyInput.value.trim();
+    if (!title || !body) {
+      alert('タイトルと内容の両方を書いてください。');
+      return;
+    }
+    submitNewPostBtn.disabled = true;
+    try {
+      await gh(repoPath('/issues'), {
+        method: 'POST',
+        body: JSON.stringify({ title, body })
+      });
+      closeOverlay();
+      await refreshBoard();
+    } catch (e) {
+      alert('貼れませんでした: ' + e.message);
+    } finally {
+      submitNewPostBtn.disabled = false;
+    }
+  });
+
+  // ---------- reply ----------
+  submitReplyBtn.addEventListener('click', async () => {
+    const body = replyBodyInput.value.trim();
+    if (!body) { alert('内容を書いてください。'); return; }
+    submitReplyBtn.disabled = true;
+    try {
+      await gh(repoPath(`/issues/${activeIssueNumber}/comments`), {
+        method: 'POST',
+        body: JSON.stringify({ body })
+      });
+      await renderThread();
+    } catch (e) {
+      alert('貼り付けられませんでした: ' + e.message);
+    } finally {
+      submitReplyBtn.disabled = false;
+    }
+  });
+
+  backToBoardBtn.addEventListener('click', closeThread);
+
+  // ---------- init ----------
+  async function init() {
+    config = loadConfig();
+    if (isConfigured()) {
+      try {
+        const user = await gh('/user');
+        whoLine.innerHTML = `ログイン中: <b>${escapeHtml(user.login)}</b>`;
+        openNewPostBtn.disabled = false;
+        await refreshBoard();
+        return;
+      } catch (e) {
+        setStatus('接続に失敗しました。接続設定を確認してください。', true);
+      }
+    }
+    openSettings();
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
